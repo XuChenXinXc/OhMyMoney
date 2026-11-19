@@ -45,6 +45,23 @@ export const CURRENCY_META: Record<CurrencyCode, { symbol: string; rate: number;
   JPY: { symbol: "¥", rate: 152, decimals: 0 },
 };
 
+export function setLiveCurrencyRates(rates: Partial<Record<CurrencyCode, number>>) {
+  if (typeof rates.CNY === "number" && rates.CNY > 0) CURRENCY_META.CNY.rate = rates.CNY;
+  if (typeof rates.JPY === "number" && rates.JPY > 0) CURRENCY_META.JPY.rate = rates.JPY;
+}
+
+export function fromUsdToCurrency(usd: number, currency: CurrencyCode): number {
+  const meta = CURRENCY_META[currency] ?? CURRENCY_META.USD;
+  const val = (Number.isFinite(usd) ? usd : 0) * meta.rate;
+  return Number(val.toFixed(meta.decimals));
+}
+
+export function fromCurrencyToUsd(amount: number, currency: CurrencyCode): number {
+  const meta = CURRENCY_META[currency] ?? CURRENCY_META.USD;
+  if (!Number.isFinite(amount) || amount < 0 || meta.rate <= 0) return 0;
+  return Number((amount / meta.rate).toFixed(4));
+}
+
 export function formatMoney(usd: number, currency: CurrencyCode): string {
   const meta = CURRENCY_META[currency] ?? CURRENCY_META.USD;
   const val = (Number.isFinite(usd) ? usd : 0) * meta.rate;

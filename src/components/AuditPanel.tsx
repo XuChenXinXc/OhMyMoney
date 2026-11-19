@@ -71,6 +71,7 @@ export function AuditPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale,
           currency,
           monthlyTotalUsd,
           yearlyTotalUsd: monthlyTotalUsd * 12,
@@ -106,35 +107,35 @@ export function AuditPanel({
 
   return (
     <div className="space-y-6">
-      {/* Budget Health */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {/* Budget Health Bar */}
+      <div className="brutal-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold">
+            <h2 className="font-display text-base font-extrabold">
               {isZh ? "月度预算红线监控" : "Monthly Budget Health"}
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               {isZh
                 ? `当前月均 ${formatMoney(monthlyTotalUsd, currency)} / 预算上限 ${formatMoney(budgetUsd, currency)}`
                 : `${formatMoney(monthlyTotalUsd, currency)} spent of ${formatMoney(budgetUsd, currency)} budget`}
             </p>
           </div>
           <span
-            className={`rounded-full px-3 py-1 text-xs font-bold ${
+            className={`rounded-lg border-2 border-black px-3 py-1 font-mono text-xs font-black ${
               pct > 100
-                ? "bg-rose-100 text-rose-700"
+                ? "bg-[#FF5C5C] text-white"
                 : pct >= 80
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-emerald-100 text-emerald-800"
+                  ? "bg-[#FFE500] text-black"
+                  : "bg-[#00E599] text-black"
             }`}
           >
             {budgetUsd > 0 ? `${pct}%` : isZh ? "未设预算" : "No cap"}
           </span>
         </div>
-        <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className="mt-3.5 h-4 w-full overflow-hidden rounded-full border-2 border-black bg-[#FFF8E7]">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              pct > 100 ? "bg-rose-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500"
+            className={`h-full transition-all duration-300 ${
+              pct > 100 ? "bg-[#FF5C5C]" : pct >= 80 ? "bg-[#FFE500]" : "bg-[#00E599]"
             }`}
             style={{ width: `${Math.min(100, pct)}%` }}
           />
@@ -143,24 +144,24 @@ export function AuditPanel({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left: Diagnostic Cards */}
-        <div className="space-y-3 lg:col-span-7">
+        <div className="space-y-3.5 lg:col-span-7">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold">
-              {isZh ? "浪费体检与一键瘦身" : "Automated Waste Audit"}
+            <h2 className="font-display text-lg font-extrabold">
+              {isZh ? "⚡ 浪费体检与一键瘦身" : "⚡ Automated Waste Audit"}
             </h2>
-            <span className="text-xs font-semibold text-emerald-600">
+            <span className="rounded-lg border-2 border-black bg-[#00E599] px-3 py-1 font-mono text-xs font-black text-black">
               {isZh
                 ? `潜在月省 ${formatMoney(audit.totalSaveUsd, currency)}`
-                : `Save up to ${formatMoney(audit.totalSaveUsd, currency)}/mo`}
+                : `Save ${formatMoney(audit.totalSaveUsd, currency)}/mo`}
             </span>
           </div>
 
           {audit.issues.length === 0 ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-              <p className="font-bold">
-                {isZh ? "你的 AI 账单非常健康！" : "Your AI stack looks super lean!"}
+            <div className="brutal-card bg-[#00E599] p-5 text-black dark:bg-[#00E599] dark:text-black">
+              <p className="font-display text-base font-black">
+                {isZh ? "🎉 你的 AI 账单非常健康！" : "🎉 Your AI stack looks super lean!"}
               </p>
-              <p className="mt-1 text-xs opacity-80">
+              <p className="mt-1 text-xs font-bold opacity-85">
                 {isZh
                   ? "未检测到重叠付费或低频闲置订阅。"
                   : "No overlapping flagship plans or idle subscriptions detected."}
@@ -170,22 +171,22 @@ export function AuditPanel({
             audit.issues.map((issue) => (
               <div
                 key={issue.id}
-                className={`rounded-2xl border p-4 ${
+                className={`brutal-card p-5 text-black ${
                   issue.severity === "high"
-                    ? "border-rose-200 bg-rose-50/50 dark:border-rose-900/60 dark:bg-rose-950/30"
+                    ? "bg-[#FFE5E5]"
                     : issue.severity === "medium"
-                      ? "border-amber-200 bg-amber-50/50 dark:border-amber-900/60 dark:bg-amber-950/30"
-                      : "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/30"
+                      ? "bg-[#FFF3C4]"
+                      : "bg-[#E6FFF5]"
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="text-sm font-bold">{issue.title}</h3>
-                  <span className="rounded-full bg-white/80 px-2.5 py-0.5 text-[11px] font-bold text-slate-900 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-emerald-400 dark:ring-slate-700">
+                  <h3 className="font-display text-sm font-extrabold">{issue.title}</h3>
+                  <span className="rounded-md border-2 border-black bg-white px-2.5 py-0.5 font-mono text-[11px] font-black text-black">
                     {isZh ? "可省 " : "Save "}
                     {formatMoney(issue.saveUsd, currency)}/{isZh ? "月" : "mo"}
                   </span>
                 </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                <p className="mt-1.5 text-xs font-medium leading-relaxed text-zinc-800">
                   {issue.desc}
                 </p>
                 <button
@@ -195,7 +196,7 @@ export function AuditPanel({
                       ? onRemoveSub(issue.targetId)
                       : onSwitchAnnual(issue.targetId)
                   }
-                  className="mt-3 rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 dark:bg-emerald-500 dark:text-slate-950"
+                  className="brutal-btn mt-3.5 rounded-xl bg-black px-4 py-2 text-xs font-extrabold text-[#FFE500] hover:bg-zinc-900"
                 >
                   {issue.actionLabel}
                 </button>
@@ -204,47 +205,47 @@ export function AuditPanel({
           )}
         </div>
 
-        {/* Right: Obsidian Shareable Card + PNG Export + Backend Short Link */}
+        {/* Right: Pop Share Card */}
         <div className="lg:col-span-5">
-          <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white shadow-xl ring-1 ring-emerald-500/30">
+          <div className="brutal-card bg-[#111116] p-6 text-white dark:bg-[#111116]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">
-                ohmymoney.money
+              <span className="font-mono text-xs font-black uppercase tracking-widest text-[#FFE500]">
+                OhMyMoney
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-400/30">
+              <span className="inline-flex items-center gap-1 rounded-lg border-2 border-black bg-[#00E599] px-2.5 py-0.5 text-[11px] font-black text-black">
                 <Sparkles className="h-3 w-3" />
                 {tier.badge}
               </span>
             </div>
 
-            <h3 className="mt-4 text-xl font-extrabold">
+            <h3 className="mt-4 font-display text-2xl font-extrabold">
               {isZh ? "我的 AI 订阅体检账单" : "My AI Spend Receipt"}
             </h3>
-            <p className="mt-1 text-xs leading-relaxed text-slate-300">{tier.roast}</p>
+            <p className="mt-1 text-xs font-medium leading-relaxed text-zinc-300">{tier.roast}</p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-800/70 p-4">
+            <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl border-2 border-white/20 bg-white/5 p-4">
               <div>
-                <p className="text-[11px] text-slate-400">{isZh ? "月均支出" : "Monthly"}</p>
-                <p className="mt-0.5 text-2xl font-extrabold">
+                <p className="text-[11px] text-zinc-400">{isZh ? "月均支出" : "Monthly"}</p>
+                <p className="mt-0.5 font-mono text-2xl font-black text-[#FFE500]">
                   {formatMoney(monthlyTotalUsd, currency)}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">{isZh ? "年化账单" : "Annual"}</p>
-                <p className="mt-0.5 text-2xl font-extrabold text-emerald-400">
+                <p className="text-[11px] text-zinc-400">{isZh ? "年化账单" : "Annual"}</p>
+                <p className="mt-0.5 font-mono text-2xl font-black text-[#00E599]">
                   {formatMoney(monthlyTotalUsd * 12, currency)}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">{isZh ? "在用工具" : "Tools"}</p>
-                <p className="mt-0.5 text-sm font-bold">
+                <p className="text-[11px] text-zinc-400">{isZh ? "在用工具" : "Tools"}</p>
+                <p className="mt-0.5 font-mono text-sm font-bold">
                   {subscriptions.length}
                   {apiSpendUsd > 0 ? " + API" : ""}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400">{isZh ? "可省金额/月" : "Save / mo"}</p>
-                <p className="mt-0.5 text-sm font-bold text-amber-300">
+                <p className="text-[11px] text-zinc-400">{isZh ? "可省金额/月" : "Save / mo"}</p>
+                <p className="mt-0.5 font-mono text-sm font-bold text-[#FF5C5C]">
                   {formatMoney(audit.totalSaveUsd, currency)}
                 </p>
               </div>
@@ -254,7 +255,7 @@ export function AuditPanel({
               <button
                 type="button"
                 onClick={handleDownloadPng}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-emerald-400"
+                className="brutal-btn inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#00E599] px-4 py-3 text-xs font-black text-black hover:bg-emerald-300"
               >
                 <Download className="h-4 w-4" />
                 <span>{isZh ? "一键下载高清 PNG 晒单图" : "Download High-DPI PNG Card"}</span>
@@ -264,7 +265,7 @@ export function AuditPanel({
                 type="button"
                 disabled={sharing}
                 onClick={handleCreateShortLink}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15 disabled:opacity-50"
+                className="brutal-btn inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFE500] px-4 py-3 text-xs font-black text-black hover:bg-yellow-300 disabled:opacity-50"
               >
                 <Link2 className="h-4 w-4" />
                 <span>
@@ -279,7 +280,7 @@ export function AuditPanel({
               </button>
 
               {shareUrl && (
-                <div className="rounded-xl bg-slate-950/80 px-3 py-2 text-[11px] text-emerald-300 break-all">
+                <div className="break-all rounded-xl border-2 border-[#00E599] bg-black px-3 py-2 font-mono text-[11px] text-[#00E599]">
                   {shareUrl}
                 </div>
               )}

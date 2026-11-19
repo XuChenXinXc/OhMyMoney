@@ -52,6 +52,7 @@ model PriceFeedback {
 model SharedReport {
   id              String   @id @default(cuid())
   slug            String   @unique
+  locale          String   @default("zh")
   currency        String   @default("USD")
   monthlyTotalUsd Float
   yearlyTotalUsd  Float

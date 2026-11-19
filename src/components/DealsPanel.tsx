@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, MessageSquarePlus } from "lucide-react";
+import { ExternalLink, MessageSquarePlus, RefreshCw } from "lucide-react";
 import { DealCategory, DealRecord } from "@/lib/catalog";
 import { DEAL_CATEGORY_LABELS, Locale } from "@/lib/i18n";
 
@@ -11,9 +11,12 @@ interface Props {
   onToast: (msg: string) => void;
 }
 
-export function DealsPanel({ locale, deals, onToast }: Props) {
+export function DealsPanel({ locale, deals: initialDeals, onToast }: Props) {
   const isZh = locale === "zh";
+  const [deals, setDeals] = useState<DealRecord[]>(initialDeals);
   const [filter, setFilter] = useState<"all" | DealCategory>("all");
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [toolName, setToolName] = useState("");
   const [note, setNote] = useState("");
@@ -22,6 +25,31 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
 
   const labels = DEAL_CATEGORY_LABELS[locale];
   const filtered = filter === "all" ? deals : deals.filter((d) => d.category === filter);
+
+  async function handleSyncDeals() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/deals/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        onToast(isZh ? "同步失败，请稍后重试" : "Sync failed");
+        return;
+      }
+      if (Array.isArray(data.deals)) {
+        setDeals(data.deals);
+      }
+      setLastSynced(new Date().toLocaleTimeString());
+      onToast(
+        isZh
+          ? `已同步最新情报（新增 ${data.fetchedCount ?? 0} 条实时动态）`
+          : `Synced latest deals (${data.fetchedCount ?? 0} live items)`
+      );
+    } catch {
+      onToast(isZh ? "网络请求失败" : "Network error");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function handleSubmitFeedback(e: React.FormEvent) {
     e.preventDefault();
@@ -51,15 +79,15 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="brutal-card flex flex-wrap items-center justify-between gap-3 p-5">
         <div>
-          <h2 className="text-base font-bold">
-            {isZh ? "AI 省钱情报站（2026 公开核验）" : "Verified AI Deals & Alternatives (2026)"}
+          <h2 className="font-display text-lg font-extrabold">
+            {isZh ? "🎁 AI 省钱情报站（支持实时抓取更新）" : "🎁 Verified AI Deals & Live Feed"}
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
             {isZh
-              ? "聚合教育优惠、年付折扣、国产高性价比与开源 BYOK 平替"
-              : "Education discounts, annual savings, China AI value picks & open-source BYOK options."}
+              ? `聚合 2026 核验折扣 + 实时抓取接口（/api/deals/sync）${lastSynced ? ` · 上次同步 ${lastSynced}` : ""}`
+              : `Curated 2026 deals + live sync via /api/deals/sync${lastSynced ? ` · Synced ${lastSynced}` : ""}`}
           </p>
         </div>
 
@@ -69,10 +97,10 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
               key={cat}
               type="button"
               onClick={() => setFilter(cat)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              className={`rounded-lg border-2 border-black px-3 py-1 text-xs font-extrabold transition dark:border-zinc-200 ${
                 filter === cat
-                  ? "bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                  ? "bg-black text-[#FFE500] dark:bg-[#FFE500] dark:text-black"
+                  : "bg-[#FFF8E7] text-black hover:bg-[#FFE500]/50 dark:bg-zinc-900 dark:text-white"
               }`}
             >
               {labels[cat]}
@@ -80,44 +108,52 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
           ))}
           <button
             type="button"
+            disabled={syncing}
+            onClick={handleSyncDeals}
+            className="brutal-btn inline-flex items-center gap-1.5 rounded-xl bg-[#00E599] px-3.5 py-1.5 text-xs font-black text-black hover:bg-emerald-300 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            <span>{syncing ? (isZh ? "同步中..." : "Syncing...") : isZh ? "拉取最新情报" : "Sync Live"}</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setOpenModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            className="brutal-btn inline-flex items-center gap-1.5 rounded-xl bg-[#FFE500] px-3.5 py-1.5 text-xs font-black text-black hover:bg-yellow-300"
           >
             <MessageSquarePlus className="h-3.5 w-3.5" />
-            <span>{isZh ? "价格有变？提交纠错" : "Report Price Change"}</span>
+            <span>{isZh ? "提交价格纠错" : "Report Price"}</span>
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {filtered.map((deal) => (
-          <article
-            key={deal.id}
-            className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-          >
+          <article key={deal.id} className="brutal-card flex flex-col justify-between p-5">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                <span className="rounded-md border border-black bg-[#FFF8E7] px-2.5 py-0.5 text-[11px] font-extrabold text-black">
                   {labels[deal.category]}
                 </span>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-800">
+                <span className="rounded-md border-2 border-black bg-[#00E599] px-2.5 py-0.5 font-mono text-[11px] font-black text-black">
                   {isZh ? deal.saveBadgeZh : deal.saveBadgeEn}
                 </span>
               </div>
-              <h3 className="mt-3 text-sm font-bold">{isZh ? deal.titleZh : deal.titleEn}</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+              <h3 className="mt-3 font-display text-base font-extrabold">
+                {isZh ? deal.titleZh : deal.titleEn}
+              </h3>
+              <p className="mt-1.5 text-xs font-medium leading-relaxed text-zinc-700 dark:text-zinc-300">
                 {isZh ? deal.descZh : deal.descEn}
               </p>
             </div>
-            <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <div className="mt-4 border-t-2 border-black/15 pt-3 dark:border-white/15">
               <a
                 href={deal.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-500"
+                className="inline-flex items-center gap-1 text-xs font-extrabold text-[#3B82F6] hover:underline"
               >
                 <span>{deal.sourceLabel}</span>
-                <ExternalLink className="h-3 w-3" />
+                <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </div>
           </article>
@@ -125,12 +161,12 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
       </div>
 
       {openModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-            <h3 className="text-base font-bold">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="brutal-card w-full max-w-md p-6">
+            <h3 className="font-display text-lg font-extrabold">
               {isZh ? "提交价格变动 / 新优惠线索" : "Submit Price Update / Deal"}
             </h3>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
               {isZh
                 ? "提交后将通过 POST /api/feedback 写入后台数据库等待审核上线。"
                 : "Persisted via POST /api/feedback for catalog updates."}
@@ -142,7 +178,7 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
                 value={toolName}
                 onChange={(e) => setToolName(e.target.value)}
                 placeholder={isZh ? "涉及工具（如 Cursor / Kimi）" : "Tool name (e.g. Cursor)"}
-                className="w-full rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-700"
+                className="w-full rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
               />
               <textarea
                 rows={3}
@@ -150,27 +186,27 @@ export function DealsPanel({ locale, deals, onToast }: Props) {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={isZh ? "具体价格变化或优惠说明..." : "Describe the pricing change..."}
-                className="w-full rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-700"
+                className="w-full rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
               />
               <input
                 type="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder={isZh ? "官方链接（可选）" : "Official pricing URL (optional)"}
-                className="w-full rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-700"
+                className="w-full rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
               />
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setOpenModal(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold dark:border-slate-700"
+                  className="brutal-btn rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-black"
                 >
                   {isZh ? "取消" : "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  className="brutal-btn rounded-xl bg-[#00E599] px-5 py-2 text-xs font-black text-black disabled:opacity-50"
                 >
                   {submitting ? "..." : isZh ? "提交入库" : "Submit"}
                 </button>

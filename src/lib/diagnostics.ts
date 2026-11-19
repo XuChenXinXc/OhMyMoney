@@ -63,7 +63,7 @@ export function runDiagnostics(
         ? `编程工具功能重叠（${paidCoding.map((s) => s.name).join(" + ")}）`
         : `Overlapping coding plans (${paidCoding.map((s) => s.nameEn).join(" + ")})`,
       desc: isZh
-        ? "同时开多个编程订阅易重复付费：日常补全留 Copilot Pro ($10) 最省，重度 Agent 留 Cursor 或 Kimi Plus 即可。"
+        ? "同时开多个编程订阅易重复付费：日常补全留 Copilot Pro ($10) 最省，重度 Agent 留 Cursor Pro 即可。"
         : "Paying for multiple coding IDEs adds up quickly. Keep Copilot Pro ($10) for lean completion or Cursor for agentic workflows.",
       saveUsd: getSubMonthlyUsd(cheaper),
       actionLabel: isZh ? `先移除 ${targetName}` : `Remove ${targetName}`,
@@ -118,9 +118,19 @@ export function runDiagnostics(
   else if (totalMonthly >= 55) tierKey = "whale";
   else if (totalMonthly >= 25) tierKey = "investor";
 
+  const maxSaveByTarget = new Map<string, number>();
+  issues.forEach((i) => {
+    const prev = maxSaveByTarget.get(i.targetId) ?? 0;
+    if (i.saveUsd > prev) maxSaveByTarget.set(i.targetId, i.saveUsd);
+  });
+  const dedupedSave = Math.min(
+    totalMonthly,
+    Array.from(maxSaveByTarget.values()).reduce((sum, v) => sum + v, 0)
+  );
+
   return {
     issues,
-    totalSaveUsd: issues.reduce((sum, i) => sum + i.saveUsd, 0),
+    totalSaveUsd: dedupedSave,
     tierKey,
   };
 }
@@ -158,157 +168,165 @@ export function buildRecommendation(
     }
   > = {
     dev: {
-      tipZh: "开发者最常见浪费是同时付多个 IDE 和多个聊天会员。保留「1 个编程主力 + 1 个对话主力」，其余走按量 API 最省钱。",
-      tipEn: "Keep 1 coding plan + 1 flagship chat plan, and route occasional secondary model calls through pay-as-you-go API.",
+      tipZh:
+        "开发者公认黄金法则：1 个主力 AI IDE（Cursor Pro）+ 1 个推理/对话主力（预算紧用免费 DeepSeek，预算足上 Claude Pro），避免同时为多个 IDE 或多个 $20 聊天会员付费。",
+      tipEn:
+        "Proven dev consensus: 1 AI IDE (Cursor Pro) + 1 reasoning/chat model (DeepSeek free on a budget, or Claude Pro at $40+).",
       items: [
+        {
+          id: "deepseek-web",
+          minBudget: 0,
+          reasonZh: "免费强推理模型，日常查错与技术问答零成本兜底",
+          reasonEn: "Free strong reasoning model for everyday debugging & Q&A.",
+        },
         {
           id: "github-copilot-pro",
           minBudget: 10,
-          reasonZh: "$10/月搞定 IDE 补全与 300 次高级请求，性价比标杆",
-          reasonEn: "$10/mo for IDE completions + 300 premium requests.",
-        },
-        {
-          id: "claude-pro",
-          minBudget: 30,
-          reasonZh: "复杂架构设计、长代码重构与文档主力",
-          reasonEn: "Primary partner for architecture, refactoring & long context.",
+          reasonZh: "低预算首选：$10/月搞定 IDE 补全与高级模型请求",
+          reasonEn: "Best $10/mo entry-level IDE completion & chat.",
         },
         {
           id: "cursor-pro",
-          minBudget: 50,
+          minBudget: 20,
           replaces: "github-copilot-pro",
-          reasonZh: "预算充足时升级全流程 Agent 编程体验（替换 Copilot）",
-          reasonEn: "Upgrade to full agentic IDE workflow (replaces Copilot).",
+          reasonZh: "开发者公认主力 AI IDE（$20/月），全项目上下文与 Agent 编程体验最佳",
+          reasonEn: "Community-favorite AI IDE ($20/mo) for full-repo Agent coding.",
         },
         {
-          id: "perplexity-pro",
-          minBudget: 65,
-          preferAnnual: true,
-          reasonZh: "快速检索最新文档与报错，年付折合 $16.67/月",
-          reasonEn: "Fast cited technical research ($16.67/mo billed annually).",
+          id: "claude-pro",
+          minBudget: 40,
+          reasonZh: "与 Cursor 形成黄金双旗舰：复杂架构设计、长文档与代码审查最强",
+          reasonEn: "Gold-standard pairing with Cursor for architecture & deep code review.",
         },
       ],
     },
     creator: {
-      tipZh: "音视频工具（Midjourney / Runway / Suno）建议淡季停月卡，确认每月高频产出后再切年付省 20%。",
-      tipEn: "Subscribe to media tools only during active production months, or switch to annual billing for 20% off once consistent.",
+      tipZh:
+        "内容创作者核心组合是「ChatGPT Plus（全能文案+多模态）+ Midjourney（视觉审美天花板）」，音视频工具仅在集中产出期按月开通最省钱。",
+      tipEn:
+        "The core creator stack is ChatGPT Plus + Midjourney Basic (annual); only add Suno/video plans during active production months.",
       items: [
+        {
+          id: "deepseek-web",
+          minBudget: 0,
+          reasonZh: "免费中文长文大纲与选题头脑风暴",
+          reasonEn: "Free outlining & brainstorming assistant.",
+        },
         {
           id: "midjourney-basic",
           minBudget: 10,
           preferAnnual: true,
-          reasonZh: "高质感封面与配图主力，年付低至 $8/月",
-          reasonEn: "High-aesthetic visuals starting at $8/mo annually.",
+          reasonZh: "公认审美第一的 AI 出图工具，年付折合 $8/月",
+          reasonEn: "Top-tier visual aesthetics at $8/mo billed annually.",
         },
         {
           id: "chatgpt-plus",
-          minBudget: 30,
-          reasonZh: "选题脚本、多模态灵感与改稿全能主力",
-          reasonEn: "All-in-one scripting, brainstorming & multimodal assistant.",
+          minBudget: 25,
+          replaces: "deepseek-web",
+          reasonZh: "选题脚本、多模态理解、数据分析与改稿全能主力",
+          reasonEn: "All-in-one scripting, multimodal ideation & editing flagship.",
         },
         {
           id: "suno-pro",
           minBudget: 40,
           preferAnnual: true,
-          reasonZh: "原创 BGM 与短视频配乐，年付 $8/月",
-          reasonEn: "Original tracks & BGM at $8/mo annually.",
-        },
-        {
-          id: "runway-standard",
-          minBudget: 55,
-          preferAnnual: true,
-          reasonZh: "短视频动态镜头生成，年付 $12/月",
-          reasonEn: "AI video clips at $12/mo annually.",
-        },
-        {
-          id: "elevenlabs-starter",
-          minBudget: 60,
-          reasonZh: "$5/月补齐高质量 AI 配音",
-          reasonEn: "Natural AI voiceovers for just $5/mo.",
+          reasonZh: "短视频原创 BGM 与人声配乐，年付仅 $8/月",
+          reasonEn: "Original BGM & tracks for video creators ($8/mo annually).",
         },
       ],
     },
     student: {
-      tipZh: "学生党优先申请教育认证折扣（如 Perplexity 教育版 $10/月），再叠加免费国产模型，月花 $10–$30 就够用。",
-      tipEn: "Claim education discounts first (like Perplexity Education Pro at $10/mo) and pair with generous free tiers.",
-      items: [
-        {
-          id: "perplexity-pro",
-          minBudget: 10,
-          overrideUsd: 10,
-          reasonZh: "查论文与资料带精准引用（教育认证版 $10/月）",
-          reasonEn: "Cited academic research ($10/mo Education Pro).",
-        },
-        {
-          id: "google-ai-pro",
-          minBudget: 30,
-          reasonZh: "大云盘空间 + 长文本读文献，科研性价比高",
-          reasonEn: "Cloud storage + long-context PDF analysis.",
-        },
-        {
-          id: "github-copilot-pro",
-          minBudget: 45,
-          reasonZh: "写实验代码与数据分析脚本",
-          reasonEn: "Coding assistant for coursework and data scripts.",
-        },
-      ],
-    },
-    office: {
-      tipZh: "日常办公别被各种零散 AI 小工具收割，1 个主力对话会员配合免费国产工具即可覆盖 80% 场景。",
-      tipEn: "Skip fragmented single-purpose AI apps — one solid chat plan covers 80% of everyday office tasks.",
-      items: [
-        {
-          id: "le-chat-pro",
-          minBudget: 10,
-          reasonZh: "$14.99/月轻量化对话平替，邮件总结够快",
-          reasonEn: "Fast $14.99/mo alternative for everyday writing & summaries.",
-        },
-        {
-          id: "chatgpt-plus",
-          minBudget: 20,
-          replaces: "le-chat-pro",
-          reasonZh: "预算到 $20 一步到位选综合旗舰",
-          reasonEn: "All-around flagship at the $20 mark.",
-        },
-        {
-          id: "perplexity-pro",
-          minBudget: 40,
-          preferAnnual: true,
-          reasonZh: "行业调研与汇报资料搜集效率翻倍",
-          reasonEn: "Rapid market & industry research with citations.",
-        },
-      ],
-    },
-    "china-value": {
-      tipZh: "国内高性价比组合：用免费的 DeepSeek / 豆包承接日常问答，预算重点投给 Kimi Go/Plus 或单个海外刚需工具。",
-      tipEn: "Pair free domestic tools (DeepSeek / Doubao) with Kimi annual plans for ultra-low monthly cost.",
+      tipZh:
+        "学生党切忌原价全买！先用高校邮箱白嫖 GitHub Copilot 教育免费版，再配 Perplexity 教育版（$10）或 Gemini（含 2TB 云盘）+ 免费 DeepSeek，极省且覆盖论文/代码全流程。",
+      tipEn:
+        "Claim free GitHub Copilot Education first, then pair Perplexity Education Pro ($10) or Google AI Pro with free DeepSeek.",
       items: [
         {
           id: "deepseek-web",
           minBudget: 0,
-          reasonZh: "日常深度推理与问答主力，网页/App 免费",
-          reasonEn: "Free flagship reasoning on web & mobile.",
+          reasonZh: "数学推导、代码调试与中文论文润色免费主力",
+          reasonEn: "Free math, coding & thesis drafting backbone.",
+        },
+        {
+          id: "perplexity-pro",
+          minBudget: 10,
+          overrideUsd: 10,
+          reasonZh: "查文献带真实引用来源，教育邮箱认证直降半价 $10/月",
+          reasonEn: "Cited literature search at 50% off ($10/mo Education Pro).",
+        },
+        {
+          id: "google-ai-pro",
+          minBudget: 30,
+          reasonZh: "超长上下文读整本 PDF 论文 + 附赠 2TB Google 云盘备份资料",
+          reasonEn: "Long-context PDF reading + 2TB cloud storage bundle.",
+        },
+      ],
+    },
+    office: {
+      tipZh:
+        "日常职场办公最忌买一堆小众 AI 订阅：1 个主流旗舰（ChatGPT Plus 或 Kimi Go）配合免费的 DeepSeek/豆包，就能覆盖 90% 的周报、PPT、邮件与会议纪要场景。",
+      tipEn:
+        "Skip niche single-purpose AI apps — one mainstream flagship (ChatGPT Plus) plus free DeepSeek/Doubao covers 90% of office work.",
+      items: [
+        {
+          id: "deepseek-web",
+          minBudget: 0,
+          reasonZh: "日常问答、写邮件与方案梳理零成本主力",
+          reasonEn: "Zero-cost daily writing, email & planning assistant.",
         },
         {
           id: "kimi-go",
           minBudget: 5,
           preferAnnual: true,
-          reasonZh: "文档、PPT 与深度研究，连续包年折合 ¥39/月",
-          reasonEn: "Docs, slides & deep research (~¥39/mo annually).",
+          reasonZh: "长文档解析、做 PPT 与中文资料整理高性价比之选（年付约 ¥39/月）",
+          reasonEn: "Great value for long documents, slides & Chinese office tasks.",
         },
         {
-          id: "kimi-plus",
-          minBudget: 15,
+          id: "chatgpt-plus",
+          minBudget: 20,
           replaces: "kimi-go",
-          preferAnnual: true,
-          reasonZh: "升级含 Kimi Code 与 Agent 集群，年付折合 ¥79/月",
-          reasonEn: "Adds Kimi Code & Agent Swarm (~¥79/mo annually).",
+          reasonZh: "职场公认综合能力最稳的全能旗舰（$20/月）",
+          reasonEn: "Most reliable all-around flagship for everyday office workflows.",
         },
         {
-          id: "github-copilot-pro",
+          id: "perplexity-pro",
+          minBudget: 40,
+          preferAnnual: true,
+          reasonZh: "行业调研与竞品资料速查，年付折合 $16.67/月",
+          reasonEn: "Fast cited market & competitor research ($16.67/mo annual).",
+        },
+      ],
+    },
+    "china-value": {
+      tipZh:
+        "国内用户最受认可的极省方案：免费 DeepSeek（深度推理）+ 免费豆包（语音/日常检索）打底，有长文档/PPT 刚需再加 Kimi Go（年付 ¥39/月），月均不到一杯咖啡钱。",
+      tipEn:
+        "Most popular China value stack: Free DeepSeek + Free Doubao, optionally adding Kimi Go (~¥39/mo annual) for heavy document workflows.",
+      items: [
+        {
+          id: "deepseek-web",
+          minBudget: 0,
+          reasonZh: "深度思考与推理能力第一梯队，网页/App 免费",
+          reasonEn: "Top-tier free reasoning on web & mobile.",
+        },
+        {
+          id: "doubao-free",
+          minBudget: 0,
+          reasonZh: "响应极快、语音对话与日常信息查询免费神器",
+          reasonEn: "Fast free everyday assistant with strong voice mode.",
+        },
+        {
+          id: "kimi-go",
+          minBudget: 5,
+          preferAnnual: true,
+          reasonZh: "重度读财报、整理长文档与做 PPT 必选（连续包年 ¥39/月）",
+          reasonEn: "Best value for long docs, reports & slides (~¥39/mo annual).",
+        },
+        {
+          id: "cursor-pro",
           minBudget: 25,
-          reasonZh: "补齐海外主流 IDE 代码补全（$10/月）",
-          reasonEn: "Adds GitHub Copilot Pro IDE completion ($10/mo).",
+          reasonZh: "若涉及写代码，把海外预算集中投给 Cursor Pro ($20/月)",
+          reasonEn: "Focus international budget on Cursor Pro ($20/mo) if coding.",
         },
       ],
     },

@@ -4,10 +4,24 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    @apply bg-[#FFF8E7] text-black antialiased transition-colors dark:bg-[#121216] dark:text-[#FFF8E7];
+  }
+}
+
+@layer components {
+  .brutal-card {
+    @apply rounded-2xl border-[2.5px] border-black bg-white shadow-brutal dark:border-zinc-200 dark:bg-[#1B1B22] dark:shadow-brutal-dark;
+  }
+
+  .brutal-btn {
+    @apply border-2 border-black shadow-brutal-sm transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none dark:border-zinc-200 dark:shadow-brutal-dark-sm;
   }
 }
 
 input[type="range"] {
-  accent-color: #10b981;
+  accent-color: #000000;
+}
+
+.dark input[type="range"] {
+  accent-color: #ffe500;
 }

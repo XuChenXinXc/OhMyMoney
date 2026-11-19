@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
 const ShareSchema = z.object({
+  locale: z.enum(["zh", "en"]).optional().default("zh"),
   currency: z.enum(["USD", "CNY", "JPY"]).default("USD"),
   monthlyTotalUsd: z.number().min(0).max(100000),
   yearlyTotalUsd: z.number().min(0).max(1200000),
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     const record = await prisma.sharedReport.create({
       data: {
         slug,
+        locale: parsed.data.locale,
         currency: parsed.data.currency,
         monthlyTotalUsd: parsed.data.monthlyTotalUsd,
         yearlyTotalUsd: parsed.data.yearlyTotalUsd,
@@ -55,7 +57,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
+    const isLocal =
+      req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1";
+    const baseUrl = isLocal
+      ? req.nextUrl.origin
+      : process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
+
     return NextResponse.json(
       {
         ok: true,
