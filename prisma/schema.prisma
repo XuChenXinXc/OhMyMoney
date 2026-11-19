@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // 本地开发默认使用 sqlite，零依赖启动；
+  // 上线 Vercel 时可改为 "postgresql" 并配置 Supabase / Neon DATABASE_URL
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AiTool {
+  id               String   @id
+  name             String
+  nameEn           String
+  region           String   // "global" | "china"
+  category         String   // "chat" | "search" | "coding" | "visual" | "audio"
+  priceUsd         Float
+  annualMonthlyUsd Float
+  nativePriceLabel String   // 如 "$20/mo" 或 "¥49/月"
+  noteZh           String
+  noteEn           String
+  sourceUrl        String
+  isActive         Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+}
+
+model DealItem {
+  id          String   @id
+  category    String   // "annual" | "education" | "alternative" | "china"
+  titleZh     String
+  titleEn     String
+  saveBadgeZh String
+  saveBadgeEn String
+  descZh      String
+  descEn      String
+  sourceLabel String
+  url         String
+  createdAt   DateTime @default(now())
+}
+
+model PriceFeedback {
+  id        String   @id @default(cuid())
+  toolName  String
+  note      String
+  sourceUrl String?
+  locale    String   @default("zh")
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model SharedReport {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  currency        String   @default("USD")
+  monthlyTotalUsd Float
+  yearlyTotalUsd  Float
+  savingsUsd      Float
+  apiSpendUsd     Float
+  budgetUsd       Float
+  tierKey         String
+  topCategory     String
+  itemsJson       String   // JSON serialized array of anonymized subscription items
+  viewCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+}
