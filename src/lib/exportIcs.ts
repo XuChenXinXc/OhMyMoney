@@ -33,8 +33,7 @@ export function downloadRenewalIcs(subs: UserSubscription[], currency: CurrencyC
   });
 
   lines.push("END:VCALENDAR");
-  const blob = new Blob([lines.join("
-")], { type: "text/calendar;charset=utf-8" });
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
