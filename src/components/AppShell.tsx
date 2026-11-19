@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   CURRENCY_META,
+  BillingCycle,
   CatalogTool,
   CurrencyCode,
   DealRecord,
@@ -71,9 +72,10 @@ export function AppShell({ initialTools, initialDeals }: Props) {
   // Custom subscription form (in currently selected currency)
   const [customName, setCustomName] = useState("");
   const [customCategory, setCustomCategory] = useState<ToolCategory>("chat");
-  const [customPrice, setCustomPrice] = useState("15");
+  const [customCycle, setCustomCycle] = useState<BillingCycle>("monthly");
+  const [customPrice, setCustomPrice] = useState("20");
   const [customDay, setCustomDay] = useState("1");
-  const [customUsage, setCustomUsage] = useState<UsageLevel>("medium");
+  const [customUsage, setCustomUsage] = useState<UsageLevel>("high");
 
   const isZh = locale === "zh";
   const curMeta = CURRENCY_META[currency];
@@ -82,6 +84,16 @@ export function AppShell({ initialTools, initialDeals }: Props) {
     setToast(msg);
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 2800);
   }
+
+  // Close custom subscription modal on Escape key
+  useEffect(() => {
+    if (!customModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCustomModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [customModalOpen]);
 
   // Load saved local state
   useEffect(() => {
@@ -306,8 +318,9 @@ export function AppShell({ initialTools, initialDeals }: Props) {
     e.preventDefault();
     if (!customName.trim()) return;
     const enteredVal = Math.max(0, parseFloat(customPrice) || 0);
-    const priceUsd = fromCurrencyToUsd(enteredVal, currency);
-    const day = Math.min(31, Math.max(1, parseInt(customDay, 10) || 1));
+    const monthlyLocal = customCycle === "annual" ? enteredVal / 12 : enteredVal;
+    const monthlyUsd = fromCurrencyToUsd(monthlyLocal, currency);
+    const day = Math.min(28, Math.max(1, parseInt(customDay, 10) || 1));
     setSubscriptions((prev) => [
       ...prev,
       {
@@ -316,13 +329,16 @@ export function AppShell({ initialTools, initialDeals }: Props) {
         nameEn: customName.trim(),
         region: "global",
         category: customCategory,
-        priceUsd,
-        annualMonthlyUsd: priceUsd,
-        nativePriceLabel: `${curMeta.symbol}${enteredVal}/mo`,
+        priceUsd: monthlyUsd,
+        annualMonthlyUsd: monthlyUsd,
+        nativePriceLabel:
+          customCycle === "annual"
+            ? `${curMeta.symbol}${enteredVal}/yr`
+            : `${curMeta.symbol}${enteredVal}/mo`,
         noteZh: "自定义订阅",
         noteEn: "Custom subscription",
         sourceUrl: "",
-        billingCycle: "monthly",
+        billingCycle: customCycle,
         usage: customUsage,
         renewalDay: day,
         isCustom: true,
@@ -807,65 +823,150 @@ export function AppShell({ initialTools, initialDeals }: Props) {
         )}
       </main>
 
-      {/* Custom Subscription Modal (Currency-Aware) */}
+      {/* Custom Subscription Modal (Currency-Aware, Labeled) */}
       {customModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="brutal-card w-full max-w-md p-6">
-            <h3 className="font-display text-lg font-extrabold">
-              {isZh ? "添加自定义 AI 订阅" : "Add Custom AI Subscription"}
-            </h3>
-            <form onSubmit={handleAddCustom} className="mt-4 space-y-3">
-              <input
-                type="text"
-                required
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder={isZh ? "工具名称（如 智谱清言 / Poe）" : "Tool name"}
-                className="w-full rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none focus:bg-white"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <select
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value as ToolCategory)}
-                  className="rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
-                >
-                  {(["chat", "search", "coding", "visual", "audio"] as const).map((c) => (
-                    <option key={c} value={c}>
-                      {CATEGORY_LABELS[locale][c]}
-                    </option>
-                  ))}
-                </select>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCustomModalOpen(false);
+          }}
+        >
+          <div className="brutal-card w-full max-w-lg overflow-hidden rounded-2xl bg-[#FFF8E7] text-black dark:bg-[#1B1B22] dark:text-white">
+            <div className="flex items-center justify-between border-b-[2.5px] border-black bg-[#FFE500] px-5 py-3.5 text-black">
+              <div>
+                <h3 className="font-display text-base font-black">
+                  {isZh ? "添加自定义 AI 订阅" : "Add Custom AI Subscription"}
+                </h3>
+                <p className="text-[11px] font-bold opacity-80">
+                  {isZh
+                    ? "价格库未收录的工具或企业/合租定制价可在此补充"
+                    : "Add any unlisted AI tool or custom team/shared price"}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setCustomModalOpen(false)}
+                className="brutal-btn flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-black text-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCustom} className="space-y-3.5 p-5">
+              <div>
+                <label className="mb-1 block text-xs font-extrabold">
+                  {isZh ? "工具 / 档位名称 *" : "Tool / Plan Name *"}
+                </label>
                 <input
-                  type="number"
-                  min={0}
-                  step={curMeta.decimals === 0 ? 1 : 0.01}
-                  value={customPrice}
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder={`${currency} (${curMeta.symbol}) / ${isZh ? "月" : "mo"}`}
-                  className="rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
+                  type="text"
+                  required
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder={isZh ? "如：Poe 会员 / Notion AI / 团队合租" : "e.g., Poe / Notion AI / Team seat"}
+                  className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm font-semibold text-black outline-none focus:ring-2 focus:ring-[#FFE500] dark:bg-zinc-900 dark:text-white"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-extrabold">
+                    {isZh ? "所属分类" : "Category"}
+                  </label>
+                  <select
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value as ToolCategory)}
+                    className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm font-bold text-black outline-none dark:bg-zinc-900 dark:text-white"
+                  >
+                    {(["chat", "search", "coding", "visual", "audio"] as const).map((c) => (
+                      <option key={c} value={c}>
+                        {CATEGORY_LABELS[locale][c]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-extrabold">
+                    {isZh ? "计费周期" : "Billing Cycle"}
+                  </label>
+                  <select
+                    value={customCycle}
+                    onChange={(e) => setCustomCycle(e.target.value as BillingCycle)}
+                    className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm font-bold text-black outline-none dark:bg-zinc-900 dark:text-white"
+                  >
+                    <option value="monthly">{isZh ? "按月付费" : "Monthly"}</option>
+                    <option value="annual">{isZh ? "按年付费" : "Annual"}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-extrabold">
+                    {customCycle === "annual"
+                      ? isZh
+                        ? `每年总价 (${currency} ${curMeta.symbol})`
+                        : `Annual Total (${currency} ${curMeta.symbol})`
+                      : isZh
+                        ? `每月价格 (${currency} ${curMeta.symbol})`
+                        : `Monthly Price (${currency} ${curMeta.symbol})`}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={curMeta.decimals === 0 ? 1 : 0.01}
+                    required
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 font-mono text-sm font-bold text-black outline-none focus:ring-2 focus:ring-[#FFE500] dark:bg-zinc-900 dark:text-white"
+                  />
+                  <p className="mt-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
+                    {(() => {
+                      const raw = Math.max(0, parseFloat(customPrice) || 0);
+                      const moUsd = fromCurrencyToUsd(customCycle === "annual" ? raw / 12 : raw, currency);
+                      return customCycle === "annual"
+                        ? isZh
+                          ? `折合月均约 ${formatMoney(moUsd, currency)} / 月`
+                          : `≈ ${formatMoney(moUsd, currency)} / mo`
+                        : isZh
+                          ? `年化约 ${formatMoney(moUsd * 12, currency)} / 年`
+                          : `≈ ${formatMoney(moUsd * 12, currency)} / yr`;
+                    })()}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-extrabold">
+                    {isZh ? "使用频率（用于重叠体检）" : "Usage Frequency"}
+                  </label>
+                  <select
+                    value={customUsage}
+                    onChange={(e) => setCustomUsage(e.target.value as UsageLevel)}
+                    className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 text-sm font-bold text-black outline-none dark:bg-zinc-900 dark:text-white"
+                  >
+                    <option value="high">{isZh ? "高频主力" : "Daily / Heavy"}</option>
+                    <option value="medium">{isZh ? "中频常用" : "Weekly / Moderate"}</option>
+                    <option value="low">{isZh ? "低频偶尔" : "Rarely Used"}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-extrabold">
+                  {isZh ? "每月续费日（1–28 号，用于到期提醒）" : "Renewal Day (1–28, for alerts)"}
+                </label>
                 <input
                   type="number"
                   min={1}
-                  max={31}
+                  max={28}
                   value={customDay}
                   onChange={(e) => setCustomDay(e.target.value)}
-                  placeholder={isZh ? "续费日 (1-31)" : "Renewal day"}
-                  className="rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
+                  className="w-full rounded-xl border-2 border-black bg-white px-3 py-2 font-mono text-sm font-bold text-black outline-none sm:w-40 dark:bg-zinc-900 dark:text-white"
                 />
-                <select
-                  value={customUsage}
-                  onChange={(e) => setCustomUsage(e.target.value as UsageLevel)}
-                  className="rounded-xl border-2 border-black bg-[#FFF8E7] px-3 py-2 text-sm font-semibold text-black outline-none"
-                >
-                  <option value="high">{isZh ? "高频刚需" : "Heavy"}</option>
-                  <option value="medium">{isZh ? "中频常用" : "Regular"}</option>
-                  <option value="low">{isZh ? "低频闲置" : "Rarely used"}</option>
-                </select>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+
+              <div className="flex justify-end gap-2 border-t-2 border-black/15 pt-3.5">
                 <button
                   type="button"
                   onClick={() => setCustomModalOpen(false)}
@@ -875,9 +976,9 @@ export function AppShell({ initialTools, initialDeals }: Props) {
                 </button>
                 <button
                   type="submit"
-                  className="brutal-btn rounded-xl bg-[#00E599] px-5 py-2 text-xs font-extrabold text-black"
+                  className="brutal-btn rounded-xl bg-[#00E599] px-5 py-2 text-xs font-black text-black"
                 >
-                  {isZh ? "加入账单" : "Add"}
+                  {isZh ? "确认加入账单" : "Add to Stack"}
                 </button>
               </div>
             </form>

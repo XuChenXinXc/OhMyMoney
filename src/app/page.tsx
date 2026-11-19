@@ -11,22 +11,26 @@ async function loadInitialData(): Promise<{ tools: CatalogTool[]; deals: DealRec
       prisma.dealItem.findMany({ orderBy: { createdAt: "desc" } }),
     ]);
 
-    const tools: CatalogTool[] =
-      dbTools.length > 0
-        ? dbTools.map((t) => ({
-            id: t.id,
-            name: t.name,
-            nameEn: t.nameEn,
-            region: t.region as CatalogTool["region"],
-            category: t.category as CatalogTool["category"],
-            priceUsd: t.priceUsd,
-            annualMonthlyUsd: t.annualMonthlyUsd,
-            nativePriceLabel: t.nativePriceLabel,
-            noteZh: t.noteZh,
-            noteEn: t.noteEn,
-            sourceUrl: t.sourceUrl,
-          }))
-        : SEED_TOOLS;
+    // Always include the full up-to-date SEED_TOOLS catalog so newly added models/tiers
+    // appear immediately even before re-running `npm run db:seed`, while keeping any extra DB-only items.
+    const seedIds = new Set(SEED_TOOLS.map((t) => t.id));
+    const extraDbTools: CatalogTool[] = dbTools
+      .filter((t) => !seedIds.has(t.id))
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        nameEn: t.nameEn,
+        region: t.region as CatalogTool["region"],
+        category: t.category as CatalogTool["category"],
+        priceUsd: t.priceUsd,
+        annualMonthlyUsd: t.annualMonthlyUsd,
+        nativePriceLabel: t.nativePriceLabel,
+        noteZh: t.noteZh,
+        noteEn: t.noteEn,
+        sourceUrl: t.sourceUrl,
+      }));
+
+    const tools: CatalogTool[] = [...SEED_TOOLS, ...extraDbTools];
 
     const deals: DealRecord[] =
       dbDeals.length > 0
