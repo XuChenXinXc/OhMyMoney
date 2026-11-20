@@ -24,8 +24,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ohmymoney.money";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "ohmymoney.money — AI Subscription Cost Tracker & Smart Optimizer",
-    template: "%s | ohmymoney.money",
+    default: "OhMyMoney — AI 订阅算账 · 高性价比搭配 · 省钱情报",
+    template: "%s | OhMyMoney",
   },
   description:
     "Track your monthly AI subscriptions (ChatGPT, Claude, Gemini, Cursor, Kimi, DeepSeek & more), spot overlapping spend, generate shareable PNG receipts, and discover high-value AI bundles. Zero login required.",
@@ -53,7 +53,9 @@ export const metadata: Metadata = {
     description: "Zero-login AI subscription audit, overlap detector & PNG receipt generator.",
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: [{ url: "/favicon.svg?v=2", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg?v=2",
+    apple: "/favicon.svg?v=2",
   },
 };
 
